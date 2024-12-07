@@ -1,5 +1,6 @@
 '''Using sqlite3 to create our db'''
 import sqlite3
+from flask import render_template
 # pylint: disable=line-too-long
 
 # ===================
@@ -23,9 +24,9 @@ def commit_close_conn(conn):
 
 
 # =========
-# FORM DATA
+# INSERT AND FORMAT DATA
 
-def format_form_data(data):
+def format_hike_form_data(data):
     '''Takes multidict object from form submission
         Returns list of dictionaries containing formatted form data. 
     '''
@@ -33,8 +34,16 @@ def format_form_data(data):
         dictionary = dict(tuple_list)
         return dictionary
     formatted_data = convert_to_dict(data, {})
-    print(f'formatted_data: {formatted_data}')
+    # print(f'formatted_data: {formatted_data}')
     return formatted_data
+
+
+def add_user(username, password_hash):
+    '''Takes username string and hashed password string
+    '''
+    db_connection = create_connection('hikes.db')
+    db_connection['cursor'].execute('INSERT INTO users (username, password_hash) VALUES (?, ?)', (username, password_hash))
+    commit_close_conn(db_connection['connection'])
 
 
 def add_area(area_name):
@@ -117,5 +126,36 @@ def get_hikes_for_ui(db):
         this_entry['trails_list'] = trails_list
         hikes_list.append(this_entry)
     commit_close_conn(db_connection['connection'])
-    print(f'data returned from get_hikes_for_ui: {hikes_list}')
+    # print(f'data returned from get_hikes_for_ui: {hikes_list}')
     return hikes_list
+
+
+def get_all_usernames(db):
+    '''Takes database file
+        Returns list of all names in database
+    '''
+    db_connection = create_connection(db)
+    usernames = db_connection['cursor'].execute('SELECT username FROM users')
+    print(f'usernames in get_all fn: {usernames}')
+    # db_connection['connection'].close()
+    return usernames
+
+
+def get_user(db, username):
+    '''Takes database file and username string
+        Returns user data from users table.
+    '''
+    db_connection = create_connection(db)
+    user = db_connection['cursor'].execute('SELECT * FROM users WHERE username = (?)', username)
+    # TODO format user object before returning it
+    db_connection['connection'].close()
+    return user
+
+
+#  ERROR HANDLING
+
+def handle_error(message, code=400):
+    '''Takes an error code number and string describing the cause of the error
+        Returns error template.
+    '''
+    return render_template('error.html', code=code, message=message)
